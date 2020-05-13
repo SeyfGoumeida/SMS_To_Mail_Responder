@@ -38,6 +38,16 @@
             android:text="Tlph"
             android:textSize="18sp" />
 
+        <TextView
+            android:id="@+id/email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#BC009688"
+            android:backgroundTint="#9E009688"
+            android:paddingLeft="10dp"
+            android:text="Email"
+            android:textSize="18sp" />
+
     </LinearLayout>
 
     <Button

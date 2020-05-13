@@ -1,14 +1,14 @@
 package com.example.sms_to_mail_responder
 
 import android.Manifest
-import android.R.array
-import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.opengl.Visibility
+import android.database.Cursor
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.provider.ContactsContract.CommonDataKinds.Email
+import android.util.ArraySet
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
@@ -17,23 +17,31 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import java.io.Serializable
+import javax.mail.*
+import javax.mail.internet.InternetAddress
+import javax.mail.internet.MimeMessage
 
 
 class MainActivity : AppCompatActivity() , ListAdapter.OnItemClickListner {
 private val requestReceiveSms = 2
-    lateinit var sendbtn : Button
+    lateinit var submit : Button
     lateinit var loadbtn : Button
     lateinit var listContacts : TextView
+    lateinit var appExecutors: AppExecutors
+
     var selectedContacts: ArrayList<Contact> = ArrayList()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        //-------------contacts in sharedprefrences-------------
+        var recyclerView: RecyclerView = findViewById(R.id.recyclerView)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
         if (ActivityCompat.checkSelfPermission(this,Manifest.permission.RECEIVE_SMS)!=PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECEIVE_SMS),requestReceiveSms)
         }
-        sendbtn=findViewById(R.id.SendBtn)
+        submit=findViewById(R.id.Submit)
         loadbtn=findViewById(R.id.LoadBtn)
         listContacts=findViewById(R.id.listConstacts)
         var contacts: MutableList<Contact> = ArrayList()
@@ -72,47 +80,63 @@ private val requestReceiveSms = 2
                                 list.getString(list.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
                             val phone =
                                 list.getString(list.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
-                            val email =
-                                list.getString(list.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
 
+                            //---------------email ---------------------
+
+                            var email :String = " "
+                            val contactId= list.getString(list.getColumnIndex(ContactsContract.CommonDataKinds.Email.CONTACT_ID))
+                            val emails: Cursor? = contentResolver.query(Email.CONTENT_URI, null, Email.CONTACT_ID + " = " + contactId, null, null)
+                            if (emails != null) {
+                                while (emails.moveToNext()) {
+                                    email = emails.getString(emails.getColumnIndex(Email.DATA))
+                                    break
+                                }
+                            }
+
+                            if (email.isNullOrEmpty()){email=" df"}
                             var contact = Contact(name, phone,email)
                             contacts.add(contact)
+
                         }
                         recyclerView.adapter = ListAdapter(contacts as ArrayList<Contact>,this)
                         list.close()
+
                     }
                 }
             }
         }
+        loadbtn.performClick()
 
-        sendbtn.setOnClickListener() {
+
+        submit.setOnClickListener() {
             var recyclerView: RecyclerView = findViewById(R.id.recyclerView)
             recyclerView.layoutManager = LinearLayoutManager(this)
-            recyclerView.adapter = ListAdapter(selectedContacts ,this)
+            recyclerView.adapter = ListAdapter(selectedContacts,this)
+            var emails :MutableSet<String> = ArraySet()
+            for(i in selectedContacts){
+                    emails.add(i.email)
+            }
 
+             if (emails != null) {
+                 val emailsPreference = EmailsPrefrence(this)
+                 emailsPreference.setEmails(emails)
+                }
         }
 
     }
-    override fun OnSelectItemClick(item:Contact , Position:Int,name : TextView,phone: TextView,select:Button){
+
+    //-----------------------------------------------------------------
+    override fun OnSelectItemClick(item:Contact , Position:Int,name : TextView,phone: TextView,email :TextView,select:Button){
 
         if(!selectedContacts.contains(item)) {
+            if (item.email!=" "){
             selectedContacts.add(item)
+            }
         }
         select.text="Selected"
         select.visibility = View.GONE
     }
-   //---------------------Shared Preferences-----------------------
-    fun setColor( selectedContacts:ArrayList<Contact>) {
-        val sharedPref: SharedPreferences = getSharedPreferences("MyPreferedColor", Context.MODE_PRIVATE)
-        val sharedPrefEdit = sharedPref.edit()
-       //sharedPrefEdit.putStringSet("selectedContacts", selectedContacts)
 
-       sharedPrefEdit.apply()
-    }
-    fun getColor() :Int {
-        val sharedPref: SharedPreferences = getSharedPreferences("MyPreferedColor", Context.MODE_PRIVATE)
-        return sharedPref.getInt("color", ContextCompat.getColor(this, R.color.colorPrimary))
-    }
 
 }
 

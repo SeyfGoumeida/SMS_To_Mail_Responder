@@ -31,21 +31,23 @@ class ListAdapter(private val contacts: ArrayList<Contact>, var clickListner: On
     class ViewHolder(item: View): RecyclerView.ViewHolder(item){
         var name:TextView = item.findViewById(R.id.name)
         var phone:TextView = item.findViewById(R.id.phone)
+        var email:TextView = item.findViewById(R.id.email)
         var select:Button = item.findViewById(R.id.selectBtn)
 
         fun initialize(item:Contact,action:OnItemClickListner){
             name.text=item.name
             phone.text=item.phone
+            email.text=item.email
 
             select.setOnClickListener {
-                action.OnSelectItemClick(item,adapterPosition,name,phone,select)
+                action.OnSelectItemClick(item,adapterPosition,name,phone,email,select)
             }
 
         }
     }
     interface OnItemClickListner{
 
-        fun OnSelectItemClick(item:Contact , Position:Int,name : TextView,phone: TextView,select:Button){
+        fun OnSelectItemClick(item:Contact , Position:Int,name : TextView,phone: TextView,email: TextView,select:Button){
 
         }
     }
