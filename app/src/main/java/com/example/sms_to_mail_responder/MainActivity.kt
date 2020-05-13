@@ -1,10 +1,13 @@
 package com.example.sms_to_mail_responder
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.app.Notification
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.database.Cursor
+import android.graphics.Color
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.provider.ContactsContract.CommonDataKinds.Email
@@ -30,11 +33,12 @@ private val requestReceiveSms = 2
     lateinit var appExecutors: AppExecutors
 
     var selectedContacts: ArrayList<Contact> = ArrayList()
+    var temporaryselectedContacts: ArrayList<Contact> = ArrayList()
+    @SuppressLint("ResourceAsColor")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //-------------contacts in sharedprefrences-------------
         var recyclerView: RecyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
@@ -45,9 +49,11 @@ private val requestReceiveSms = 2
         loadbtn=findViewById(R.id.LoadBtn)
         listContacts=findViewById(R.id.listConstacts)
         var contacts: MutableList<Contact> = ArrayList()
-
+//-----------------------------------Load Button-------------------------------------
         loadbtn.setOnClickListener(){
-
+            submit.text="Confirmer"
+            submit.setBackgroundColor(resources.getColor(R.color.confirmer))
+            submit.setTextColor(Color.WHITE)
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
 
                 // Should we show an explanation?
@@ -105,32 +111,79 @@ private val requestReceiveSms = 2
                 }
             }
         }
-        loadbtn.performClick()
+//-------------------load old selected contacts when start the app ------------------
 
+        val emailsPreference = EmailsPrefrence(this)
+        val emails = emailsPreference.getEmails()
 
+        var list = contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            null,
+            null,
+            null,
+            null
+        )
+        if (emails != null) {
+            for (i in emails){
+                if (list != null) {
+                    while (list.moveToNext()) {
+                        val name =
+                            list.getString(list.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
+                        val phone =
+                            list.getString(list.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
+
+                        //---------------email ---------------------
+
+                        var email :String = " "
+                        val contactId= list.getString(list.getColumnIndex(ContactsContract.CommonDataKinds.Email.CONTACT_ID))
+                        val emails: Cursor? = contentResolver.query(Email.CONTENT_URI, null, Email.CONTACT_ID + " = " + contactId, null, null)
+                        if (emails != null) {
+                            while (emails.moveToNext()) {
+                                email = emails.getString(emails.getColumnIndex(Email.DATA))
+                                break
+                            }
+                        }
+                        if (email==i){
+                        var contact = Contact(name, phone,i)
+                            selectedContacts.add(contact)
+                        }
+                    }
+                }
+            }
+            recyclerView.adapter = ListAdapter(selectedContacts ,this)
+            list?.close()
+        }
+//---------------------Submit Selected Contacts ----------------------------
         submit.setOnClickListener() {
+            submit.text="Annuler"
+            submit.setBackgroundColor(resources.getColor(R.color.annuler))
+            submit.setTextColor(Color.WHITE)
             var recyclerView: RecyclerView = findViewById(R.id.recyclerView)
             recyclerView.layoutManager = LinearLayoutManager(this)
+            //erase the old selected list
+            selectedContacts =ArrayList<Contact>()
+
+            selectedContacts=temporaryselectedContacts
             recyclerView.adapter = ListAdapter(selectedContacts,this)
+
             var emails :MutableSet<String> = ArraySet()
             for(i in selectedContacts){
                     emails.add(i.email)
             }
-
-             if (emails != null) {
-                 val emailsPreference = EmailsPrefrence(this)
-                 emailsPreference.setEmails(emails)
-                }
+             val emailsPreference = EmailsPrefrence(this)
+             emailsPreference.setEmails(emails)
+            //erase temporary selected list
+            temporaryselectedContacts=ArrayList<Contact>()
         }
 
     }
 
-    //-----------------------------------------------------------------
+    //-----------------selectionner un contact---------------------------------
     override fun OnSelectItemClick(item:Contact , Position:Int,name : TextView,phone: TextView,email :TextView,select:Button){
 
-        if(!selectedContacts.contains(item)) {
+        if(!temporaryselectedContacts.contains(item)) {
             if (item.email!=" "){
-            selectedContacts.add(item)
+                temporaryselectedContacts.add(item)
             }
         }
         select.text="Selected"

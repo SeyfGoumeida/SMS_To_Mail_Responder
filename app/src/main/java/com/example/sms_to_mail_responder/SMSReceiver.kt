@@ -107,9 +107,9 @@ class SMSReceiver: BroadcastReceiver() {
                     Message.RecipientType.TO,
                     InternetAddress(email))
                 //Adding subject
-                mm.subject = "Your mail's subject."
+                mm.subject = "APP TEST"
                 //Adding message
-                mm.setText("Your mail body.")
+                mm.setText("This is a message from the app that reply to SMS by Emails :) !")
                 //Sending email
                 Transport.send(mm)
                 appExecutors.mainThread().execute {

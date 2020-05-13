@@ -13,6 +13,8 @@ class EmailsPrefrence(context: Context){
     }
     fun setEmails(selectedmails:MutableSet<String>){
         val editor = preference.edit()
+        editor.clear()
+        editor.commit()
         editor.putStringSet("selectedMails", selectedmails)
         editor.apply()
     }
